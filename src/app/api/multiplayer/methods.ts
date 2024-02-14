@@ -1,12 +1,12 @@
-import { baseUrl } from "./base";
+import { baseUrl } from "../base";
 
 // creates the game and stores the game id, game code, session id, and session type in local storage, and activates the game channel
 export const createGame = async () => {
-  const res1 = await fetch(`${baseUrl}/create_multiplayer_game`, {
+  const res = await fetch(`${baseUrl}/create_multiplayer_game`, {
     method: "POST",
   });
 
-  return res1.json();
+  return res.json();
 };
 
 // joins the game and stores the game id, session id, and session type in local storage, and activates the game channel
@@ -39,12 +39,16 @@ export const guestInGame = async (gameId: number) => {
 
 export const dealCard = async (
   gameId: number,
-  playerId: number,
-  sessionId: number
+  sessionId: number,
+  playerId: number
 ) => {
-  const res = await fetch(`${baseUrl}/play_card`, {
+  const res = await fetch(`${baseUrl}/deal_card`, {
     method: "POST",
-    body: JSON.stringify({ game_id: gameId, playerId, session_id: sessionId }),
+    body: JSON.stringify({
+      game_id: gameId,
+      player_id: playerId,
+      session_id: sessionId,
+    }),
     headers: {
       "Content-Type": "application/json",
     },

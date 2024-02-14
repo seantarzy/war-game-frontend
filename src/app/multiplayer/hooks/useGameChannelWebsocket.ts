@@ -1,4 +1,4 @@
-import { hostInGame, guestInGame } from "@/app/api/multiplayer";
+import { hostInGame, guestInGame } from "@/app/api/multiplayer/methods";
 import { useEffect, useState } from "react";
 import { Card, sessionType } from "../types";
 
@@ -31,10 +31,30 @@ const useGameChannelWebsocket = ({
   const battleReady = currentSessionCard && oppSessionCard ? true : false;
 
   const handleCardPlayed = (message: any) => {
-    if (message.session_id === currentPlayerSessionId) {
-      setCurrentSessionCard(message.card);
+    // when we know it's the current session that played, we animate current sessions card sliding face up to the center
+    // when we know it's the opp session that played, we animate opp sessions card sliding face down to the center
+    // at the end of the animation,
+    // if it was the current session's animation that just finished, we flip the opp session card face up
+    // if it was the opp session's animation that just finished, we flip the opp session card face up
+    // either way, it's the opp session's card that flips over, when both cards are ready.
+
+    // so:
+    //   animate to center in both cases
+    //      - if current session, send the card face up
+    //      - if opp session, send the card face down
+    //   if both cards are ready, flip the opp session card face up
+    //       - if both cards are ready, backend should tell us who won
+    //       - but we dont reveal right away, we wait for the animation to finish
+    //  then we reveal
+    //    - the opponent's card
+    //    - the winner
+    //    - the score
+    if (message.session.id === currentPlayerSessionId) {
+      console.log("Setting current session card: ", message.player);
+      setCurrentSessionCard(message.player);
     } else {
-      setOppSessionCard(message.card);
+      console.log("Setting opp session card: ", message.player);
+      setOppSessionCard(message.player);
     }
   };
 
@@ -80,7 +100,7 @@ const useGameChannelWebsocket = ({
               case "game_ready":
                 setGameReady(true);
                 break;
-              case "card_played":
+              case "card_dealt":
                 console.log("Card played: ", message);
                 handleCardPlayed(message);
                 break;
@@ -102,12 +122,13 @@ const useGameChannelWebsocket = ({
     }
 
     const closeWebSocket = () => {
-      if (ws.readyState === WebSocket.OPEN) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
         ws.close();
       }
     };
 
-    setTimeout(closeWebSocket, 1000);
+    return closeWebSocket;
+    // setTimeout(closeWebSocket, 1000);
   }, [gameId]);
 
   return {

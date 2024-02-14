@@ -1,11 +1,11 @@
 "use client";
 import React, { useState, useEffect, use } from "react";
-import { getRandomPlayer } from "../../api/players";
+import { getRandomPlayer } from "../../api/players/methods";
 import { env } from "process";
 import useGameChannelWebsocket from "../hooks/useGameChannelWebsocket";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { Card } from "../types";
-import { dealCard } from "@/app/api/multiplayer";
+import { dealCard } from "@/app/api/multiplayer/methods";
 const urlBase = env.NODE_ENV === "production" ? "heroku" : "localhost3001";
 export default function MultiplayerGame({ gameId }: { gameId: number }) {
   const [currentPlayerSessionId] = useLocalStorage("sessionId", 0);
@@ -17,9 +17,10 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
     console.error("No session id found");
   }
   const drawRando = () => {
-    getRandomPlayer().then((res) => {
-      console.log(res);
-      setCardDrawn(res.card);
+    getRandomPlayer().then((card: Card) => {
+      console.log("rando player", card);
+
+      setCardDrawn(card);
     });
   };
 
@@ -36,8 +37,9 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
       return;
     }
     const playerId = parseInt(cardDrawn.id);
+
     dealCard(gameId, currentPlayerSessionId, playerId).then((res) => {
-      console.log(res);
+      console.log("card dealt", res);
     });
   };
 
@@ -50,12 +52,26 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
   return (
     <div>
       <h1>MultiplayerGame</h1>
+      <div>{cardDrawn ? <div>{cardDrawn.name}</div> : null}</div>
       <button onClick={drawRando} className="rounded-md">
-        Get Random Player
+        {cardDrawn ? "Redraw" : "Get Random Player"}
       </button>
       <button onClick={sendMove} className="rounded-md">
         Send Move
       </button>
+      {battleReady ? (
+        <div>
+          <h1>Battle Ready</h1>
+          <div>
+            <h2>Yours</h2>
+            <div>{currentSessionCard ? currentSessionCard.name : null}</div>
+          </div>
+          <div>
+            <h2>Your opponent</h2>
+            <div>{oppSessionCard ? oppSessionCard.name : null}</div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
