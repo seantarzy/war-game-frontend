@@ -1,6 +1,7 @@
 import { hostInGame, guestInGame } from "@/app/api/multiplayer/methods";
 import { useEffect, useState } from "react";
 import { Card, sessionType } from "../types";
+import { useLocalStorage } from "./useLocalStorage";
 
 const useGameChannelWebsocket = ({
   currentPlayerSessionId,
@@ -17,6 +18,8 @@ const useGameChannelWebsocket = ({
   battleReady: boolean;
   currentSessionCard: Card | null;
   oppSessionCard: Card | null;
+  currenSessionScore: number;
+  oppSessionScore: number;
   invalidateCardRound: () => void;
 } => {
   const [websocket, setWebsocket] = useState<WebSocket | null>(null);
@@ -25,6 +28,17 @@ const useGameChannelWebsocket = ({
   const [currentSessionCard, setCurrentSessionCard] = useState<Card | null>(
     null
   );
+
+  const [currenSessionScore, setCurrentSessionScore] = useLocalStorage(
+    "currentSessionScore",
+    0
+  );
+  const [oppSessionScore, setOppSessionScore] = useLocalStorage(
+    "oppSessionScore",
+    0
+  );
+
+  const [roundWinner, setRoundWinner] = useState<boolean | "tie" | null>(null);
 
   const [oppSessionCard, setOppSessionCard] = useState<Card | null>(null);
 
@@ -62,6 +76,26 @@ const useGameChannelWebsocket = ({
     setCurrentSessionCard(null);
     setOppSessionCard(null);
   };
+
+  const handleRoundWinner = (message: any) => {
+    const winner = message.winner;
+    const loser = message.loser;
+    if (winner === "tie") {
+      setRoundWinner("tie");
+      console.log("It's a tie");
+    }
+    switch (winner.id) {
+      case currentPlayerSessionId:
+        setRoundWinner(true);
+        setCurrentSessionScore(winner.current_score);
+        break;
+      default:
+        setOppSessionScore(winner.current_score);
+        setRoundWinner(false);
+        console.log("You lost the round");
+    }
+  };
+
   useEffect(() => {
     let ws: WebSocket;
 
@@ -104,6 +138,10 @@ const useGameChannelWebsocket = ({
                 console.log("Card played: ", message);
                 handleCardPlayed(message);
                 break;
+              case "round_winner":
+                console.log("Round winner: ", message);
+                handleRoundWinner(message);
+                break;
               case "game_initiated":
                 console.log("Game started: ", message);
                 setGameStarted(true);
@@ -138,6 +176,8 @@ const useGameChannelWebsocket = ({
     battleReady,
     currentSessionCard,
     oppSessionCard,
+    currenSessionScore,
+    oppSessionScore,
     invalidateCardRound,
   };
 };

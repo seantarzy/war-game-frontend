@@ -1,7 +1,11 @@
-interface Batter {
-  role: "hitter";
+interface Player {
   id: string;
   name: string;
+  war: string;
+  role: "hitter" | "pitcher";
+}
+interface Batter extends Player {
+  role: "hitter";
   avg: string;
   hits: string;
   hr: string;
@@ -9,10 +13,8 @@ interface Batter {
   runs: string;
 }
 
-interface Pitcher {
+interface Pitcher extends Player {
   role: "pitcher";
-  id: string;
-  name: string;
   era: string;
   wins: string;
   losses: string;
