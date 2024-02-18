@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect, use, useMemo } from "react";
 import { getRandomPlayer } from "../../api/players/methods";
 import { env } from "process";
 import useGameChannelWebsocket from "../hooks/useGameChannelWebsocket";
@@ -7,6 +7,8 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 import { Card } from "../types";
 import { dealCard } from "@/app/api/multiplayer/methods";
 const urlBase = env.NODE_ENV === "production" ? "heroku" : "localhost3001";
+
+const cardSlideTimeDuration: number = 1000;
 
 function PlayerCard({ player }: { player: Card }) {
   return (
@@ -22,10 +24,17 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
   const [sessionType] = useLocalStorage("sessionType", null);
 
   const [cardDrawn, setCardDrawn] = useState<Card | null>(null);
-
-  if (currentPlayerSessionId === 0) {
-    console.error("No session id found");
-  }
+  const {
+    currentSessionCard,
+    oppSessionCard,
+    currenSessionScore,
+    oppSessionScore,
+    invalidateCardRound,
+  } = useGameChannelWebsocket({
+    gameId: gameId,
+    currentPlayerSessionId: currentPlayerSessionId,
+    sessionType: sessionType,
+  });
   const drawRando = () => {
     getRandomPlayer().then((card: Card) => {
       console.log("rando player", card);
@@ -33,22 +42,14 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
       setCardDrawn(card);
     });
   };
-
-  const {
-    battleReady,
-    currentSessionCard,
-    oppSessionCard,
-    currenSessionScore,
-    oppSessionScore,
-  } = useGameChannelWebsocket({
-    gameId: gameId,
-    currentPlayerSessionId: currentPlayerSessionId,
-    sessionType: sessionType,
-  });
+  let battleReady = !!currentSessionCard && !!oppSessionCard;
+  if (currentPlayerSessionId === 0) {
+    console.error("No session id found");
+  }
 
   const sendMove = () => {
     if (!cardDrawn) {
-      console.error("No card drawn");
+      animateCardSlide();
       return;
     }
     const playerId = parseInt(cardDrawn.id);
@@ -60,9 +61,25 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
 
   useEffect(() => {
     if (battleReady) {
-      console.log("Battle ready");
+      console.log("battle ready");
+      animateCardSlide();
     }
   }, [battleReady]);
+
+  function animateCardSlide() {
+    let tomeoutId;
+    let secondTimeoutId;
+    tomeoutId = setTimeout(() => {
+      console.log("card slide");
+      secondTimeoutId = setTimeout(() => {
+        console.log("done");
+        invalidateCardRound();
+        setCardDrawn(null);
+      }, 300);
+    }, cardSlideTimeDuration);
+
+    // clearTimeout(tomeoutId);
+  }
 
   return (
     <div>
@@ -72,17 +89,16 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
 
       <div>{cardDrawn ? <div>{cardDrawn.name}</div> : null}</div>
       <button onClick={drawRando} className="rounded-md">
-        {cardDrawn ? "Redraw" : "Get Random Player"}
+        {cardDrawn ? "Redraw" : "Draw Player"}
       </button>
       <button onClick={sendMove} className="rounded-md">
         Send Move
       </button>
-      {battleReady ? (
+      {currentSessionCard ? (
         <div>
           <h1>Battle Ready</h1>
           <div>
             <h2>Yours</h2>
-
             <div>
               {currentSessionCard ? (
                 <PlayerCard player={currentSessionCard} />

@@ -21,6 +21,7 @@ const useGameChannelWebsocket = ({
   currenSessionScore: number;
   oppSessionScore: number;
   invalidateCardRound: () => void;
+  exitLobby: () => void;
 } => {
   const [websocket, setWebsocket] = useState<WebSocket | null>(null);
   const [gameReady, setGameReady] = useState(false);
@@ -95,6 +96,10 @@ const useGameChannelWebsocket = ({
         console.log("You lost the round");
     }
   };
+
+  function exitLobby() {
+    setGameReady(false);
+  }
 
   useEffect(() => {
     let ws: WebSocket;
@@ -179,6 +184,7 @@ const useGameChannelWebsocket = ({
     currenSessionScore,
     oppSessionScore,
     invalidateCardRound,
+    exitLobby,
   };
 };
 

@@ -4,6 +4,7 @@ import React, { FormEvent, use, useEffect, useState } from "react";
 import useGameChannelWebsocket from "../hooks/useGameChannelWebsocket";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { sessionType } from "../types";
+import { destroyGame } from "@/app/api/game/methods";
 
 export default function MultiplayerLobby({
   startGame,
@@ -19,7 +20,7 @@ export default function MultiplayerLobby({
     null
   );
 
-  const { gameStarted, gameReady } = useGameChannelWebsocket({
+  const { gameStarted, gameReady, exitLobby } = useGameChannelWebsocket({
     currentPlayerSessionId: sessionId,
     gameId: gameId,
     sessionType: sessionType,
@@ -78,9 +79,19 @@ export default function MultiplayerLobby({
     );
   }
 
+  const endGame = () => {
+    if (!gameId) return;
+    setGameCode("");
+    setSessionType(null);
+    exitLobby();
+    destroyGame(gameId);
+    window.localStorage.removeItem("gameCode");
+  };
+
   function WaitingLobby() {
     return (
       <div>
+        <button onClick={endGame}>Back</button>
         <h1>Game Started! Send this invite code to your friend:</h1>
         <h2>{gameCode}</h2>
       </div>
