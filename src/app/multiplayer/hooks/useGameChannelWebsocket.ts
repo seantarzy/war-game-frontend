@@ -18,7 +18,7 @@ const useGameChannelWebsocket = ({
   battleReady: boolean;
   currentSessionCard: Card | null;
   oppSessionCard: Card | null;
-  currenSessionScore: number;
+  currentSessionScore: number;
   oppSessionScore: number;
   invalidateCardRound: () => void;
   exitLobby: () => void;
@@ -30,7 +30,7 @@ const useGameChannelWebsocket = ({
     null
   );
 
-  const [currenSessionScore, setCurrentSessionScore] = useLocalStorage(
+  const [currentSessionScore, setCurrentSessionScore] = useLocalStorage(
     "currentSessionScore",
     0
   );
@@ -65,10 +65,8 @@ const useGameChannelWebsocket = ({
     //    - the winner
     //    - the score
     if (message.session.id === currentPlayerSessionId) {
-      console.log("Setting current session card: ", message.player);
       setCurrentSessionCard(message.player);
     } else {
-      console.log("Setting opp session card: ", message.player);
       setOppSessionCard(message.player);
     }
   };
@@ -83,7 +81,6 @@ const useGameChannelWebsocket = ({
     const loser = message.loser;
     if (winner === "tie") {
       setRoundWinner("tie");
-      console.log("It's a tie");
     }
     switch (winner.id) {
       case currentPlayerSessionId:
@@ -93,7 +90,6 @@ const useGameChannelWebsocket = ({
       default:
         setOppSessionScore(winner.current_score);
         setRoundWinner(false);
-        console.log("You lost the round");
     }
   };
 
@@ -132,23 +128,18 @@ const useGameChannelWebsocket = ({
         // Assuming your custom messages are encapsulated in another key like `data`
         if (response.type !== "ping") {
           // Check the custom `action` key
-          console.log("Message from server ", message);
           if (message) {
-            console.log("action from server ", message.action);
             switch (message.action) {
               case "game_ready":
                 setGameReady(true);
                 break;
               case "card_dealt":
-                console.log("Card played: ", message);
                 handleCardPlayed(message);
                 break;
               case "round_winner":
-                console.log("Round winner: ", message);
                 handleRoundWinner(message);
                 break;
               case "game_initiated":
-                console.log("Game started: ", message);
                 setGameStarted(true);
                 break;
               // Add more cases as needed
@@ -181,7 +172,7 @@ const useGameChannelWebsocket = ({
     battleReady,
     currentSessionCard,
     oppSessionCard,
-    currenSessionScore,
+    currentSessionScore,
     oppSessionScore,
     invalidateCardRound,
     exitLobby,

@@ -23,11 +23,14 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
   const [currentPlayerSessionId] = useLocalStorage("sessionId", 0);
   const [sessionType] = useLocalStorage("sessionType", null);
 
+  const [currentCardInMiddle, setcurrentCardInMiddle] = useState(false);
+  const [oppCardInMiddle, setOppCardInMiddle] = useState(false);
+
   const [cardDrawn, setCardDrawn] = useState<Card | null>(null);
   const {
     currentSessionCard,
     oppSessionCard,
-    currenSessionScore,
+    currentSessionScore,
     oppSessionScore,
     invalidateCardRound,
   } = useGameChannelWebsocket({
@@ -37,19 +40,23 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
   });
   const drawRando = () => {
     getRandomPlayer().then((card: Card) => {
-      console.log("rando player", card);
-
       setCardDrawn(card);
     });
   };
+
+  let opponentReady = !!oppSessionCard;
+
+  let currentReady = !!currentSessionCard;
+
   let battleReady = !!currentSessionCard && !!oppSessionCard;
+
+  console.log("battle ready", battleReady);
   if (currentPlayerSessionId === 0) {
     console.error("No session id found");
   }
 
   const sendMove = () => {
     if (!cardDrawn) {
-      animateCardSlide();
       return;
     }
     const playerId = parseInt(cardDrawn.id);
@@ -60,59 +67,100 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
   };
 
   useEffect(() => {
+    if (opponentReady) {
+      setTimeout(() => {
+        setOppCardInMiddle(true);
+      }, cardSlideTimeDuration);
+    }
+  }, [opponentReady]);
+
+  useEffect(() => {
+    if (currentReady) {
+      setTimeout(() => {
+        setcurrentCardInMiddle(true);
+      }, cardSlideTimeDuration);
+    }
+  }, [currentReady]);
+
+  useEffect(() => {
     if (battleReady) {
-      console.log("battle ready");
-      animateCardSlide();
+      let tomeoutId;
+      let secondTimeoutId;
+      tomeoutId = setTimeout(() => {
+        console.log("card slide");
+        secondTimeoutId = setTimeout(() => {
+          console.log("done");
+          setOppCardInMiddle(false);
+          setcurrentCardInMiddle(false);
+          invalidateCardRound();
+          setCardDrawn(null);
+        }, 1000);
+      }, cardSlideTimeDuration);
     }
   }, [battleReady]);
 
-  function animateCardSlide() {
-    let tomeoutId;
-    let secondTimeoutId;
-    tomeoutId = setTimeout(() => {
-      console.log("card slide");
-      secondTimeoutId = setTimeout(() => {
-        console.log("done");
-        invalidateCardRound();
-        setCardDrawn(null);
-      }, 300);
-    }, cardSlideTimeDuration);
+  // function animateCardSlide() {
+  //   let tomeoutId;
+  //   let secondTimeoutId;
+  //   tomeoutId = setTimeout(() => {
+  //     console.log("card slide");
+  //     secondTimeoutId = setTimeout(() => {
+  //       console.log("done");
+  //       invalidateCardRound();
+  //       setCardDrawn(null);
+  //     }, 300);
+  //   }, cardSlideTimeDuration);
 
-    // clearTimeout(tomeoutId);
-  }
+  //   // clearTimeout(tomeoutId);
+  // }
 
   return (
     <div>
       <h1>MultiplayerGame</h1>
-      <div>Your score: {currenSessionScore}</div>
-      <div>Opponenet score: {oppSessionScore}</div>
+      <div>Your score: {currentSessionScore}</div>
+      <div>Opponent score: {oppSessionScore}</div>
 
-      <div>{cardDrawn ? <div>{cardDrawn.name}</div> : null}</div>
-      <button onClick={drawRando} className="rounded-md">
-        {cardDrawn ? "Redraw" : "Draw Player"}
-      </button>
-      <button onClick={sendMove} className="rounded-md">
-        Send Move
-      </button>
-      {currentSessionCard ? (
-        <div>
-          <h1>Battle Ready</h1>
-          <div>
-            <h2>Yours</h2>
-            <div>
-              {currentSessionCard ? (
-                <PlayerCard player={currentSessionCard} />
-              ) : null}
-            </div>
-          </div>
-          <div>
-            <h2>Your opponent</h2>
-            <div>
-              {oppSessionCard ? <PlayerCard player={oppSessionCard} /> : null}
-            </div>
-          </div>
-        </div>
+      <div>
+        {cardDrawn ? (
+          <div>{cardDrawn.name}</div>
+        ) : (
+          <button onClick={drawRando} className="rounded-md">
+            {cardDrawn ? "Redraw" : "Draw Player"}
+          </button>
+        )}
+      </div>
+
+      {cardDrawn ? (
+        <button onClick={sendMove} className="rounded-md" disabled={!cardDrawn}>
+          Send Move
+        </button>
       ) : null}
+
+      {/* Your side */}
+      <div>
+        {currentSessionCard && !currentCardInMiddle ? (
+          <h2>Your card is sending...</h2>
+        ) : null}
+        {currentSessionCard && currentCardInMiddle ? (
+          <div>
+            <h2>Your card in the middle:</h2>
+            <PlayerCard player={currentSessionCard} />
+          </div>
+        ) : null}
+      </div>
+
+      {/* Opponent's side */}
+      <div>
+        {oppSessionCard && !oppCardInMiddle ? (
+          <h2>Opponent's card is sending...</h2>
+        ) : null}
+        {oppSessionCard && oppCardInMiddle ? (
+          <div>
+            <h2>Opponent's card in the middle:</h2>
+            <PlayerCard player={oppSessionCard} />
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
