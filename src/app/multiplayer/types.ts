@@ -2,6 +2,7 @@ interface Player {
   id: string;
   name: string;
   war: string;
+  image: string;
   role: "hitter" | "pitcher";
 }
 interface Batter extends Player {

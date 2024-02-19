@@ -1,0 +1,7 @@
+.background-image {
+  background-image: url("../assets/war-games-bg-3.webp");
+  background-size: cover;
+  background-position: center;
+  width: 100vw;
+  height: 100vh;
+}
