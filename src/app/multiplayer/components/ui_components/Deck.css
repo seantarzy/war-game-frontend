@@ -1,0 +1,31 @@
+.card-stack-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  width: 160px; /* Adjust based on card size */
+  height: 224px; /* Adjust based on card size */
+  margin: auto; /* Center the stack if the parent is flex */
+}
+
+@keyframes slide-in-from-right {
+  from {
+    transform: translateX(
+      50vw
+    ); /* Adjust this based on desired starting position */
+  }
+  to {
+    transform: translateX(0); /* Adjust if necessary */
+  }
+}
+
+@keyframes slide-in-from-left {
+  from {
+    transform: translateX(
+      -50vw
+    ); /* Adjust this based on desired starting position */
+  }
+  to {
+    transform: translateX(0); /* Adjust if necessary */
+  }
+}

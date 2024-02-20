@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, use, useMemo, useRef } from "react";
+import React, { useState, useEffect, use, useMemo, useRef, memo } from "react";
 import { getRandomPlayer } from "../../api/players/methods";
 import { env } from "process";
 import useGameChannelWebsocket from "../hooks/useGameChannelWebsocket";
@@ -10,35 +10,13 @@ import CardBackImage from "../../assets/war-games-back.jpeg";
 import Image from "next/image";
 import { useSpring, animated } from "@react-spring/web";
 import { BaseballButton } from "./ui_components/Button";
+import { CardBack, PlayerCard, CardStack } from "./ui_components/Deck";
 
 const urlBase = env.NODE_ENV === "production" ? "heroku" : "localhost3001";
 
 const CARD_SLIDE_TIME_DURATION: number = 1000;
 
 const CARD_BATTLE_TIME_DURATION: number = 3000;
-
-function BaseCardLayout({ children }: { children: React.ReactNode }) {
-  return <div className="h-56 w-40">{children}</div>;
-}
-function PlayerCard({ player }: { player: Card }) {
-  return (
-    <BaseCardLayout>
-      <div className="bg-blue-600 border-gray-100 border-2 h-full w-full flex flex-col justify-center items-center">
-        <h2>{player.name}</h2>
-        <img src={player.image} alt={player.name} className="w-[90%] h-[80%]" />
-        <div>WAR: {player.war}</div>
-      </div>
-    </BaseCardLayout>
-  );
-}
-
-function CardBack() {
-  return (
-    <BaseCardLayout>
-      <Image className="h-full w-full" src={CardBackImage} alt="card back" />
-    </BaseCardLayout>
-  );
-}
 
 type XYPos = { x: number; y: number };
 export default function MultiplayerGame({ gameId }: { gameId: number }) {
@@ -79,11 +57,7 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
     });
   };
 
-  const [springs, api] = useSpring(() => ({}));
-
   let opponentReady = !!oppSessionCard;
-
-  let currentReady = !!currentSessionCard;
 
   let battleReady = !!currentSessionCard && !!oppSessionCard;
 
@@ -100,9 +74,9 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
 
     dealCard(gameId, currentPlayerSessionId, playerId).then((res) => {
       setcardSlideReady(true);
-      setTimeout(() => {
-        handleCurrentSlideDone();
-      }, CARD_BATTLE_TIME_DURATION);
+      // setTimeout(() => {
+      //   handleCurrentSlideDone();
+      // }, CARD_BATTLE_TIME_DURATION);
     });
   };
 
@@ -131,14 +105,14 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
     }
   }, [battleReady]);
 
-  const handleCurrentSlideDone = () => {
-    setTimeout(() => {
-      setOppCardInMiddle(false);
-      setcardSlideReady(false);
-      invalidateCardRound();
-      setCardDrawn(null);
-    }, 1000);
-  };
+  // const handleCurrentSlideDone = () => {
+  //   setTimeout(() => {
+  //     setOppCardInMiddle(false);
+  //     setcardSlideReady(false);
+  //     invalidateCardRound();
+  //     setCardDrawn(null);
+  //   }, 1000);
+  // };
 
   const slideIn = useSpring({
     to: {
@@ -149,7 +123,8 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
     from: { transform: "translate(0vw, 0vh)" },
     config: { duration: CARD_SLIDE_TIME_DURATION },
   });
-  function MySide() {
+
+  const MySide = memo(() => {
     function MyButtonSet() {
       return (
         <div className="flex flex-col gap-4 self-center">
@@ -172,28 +147,20 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
     }
 
     return (
-      <div className="flex m-5 gap-4 self-end">
+      <div className="flex m-5 gap-8 self-end">
         <MyButtonSet />
         {cardDrawn ? (
           <animated.div style={slideIn}>
             <PlayerCard player={cardDrawn} />
           </animated.div>
         ) : (
-          <CardBack />
+          <CardStack fromDirection="right" />
         )}
-        <div>
-          {/* {currentSessionCard && cardSlideReady ? (
-            <div>
-              <h2>Your card in the middle:</h2>
-              <PlayerCard player={currentSessionCard} />
-            </div>
-          ) : null} */}
-        </div>
       </div>
     );
-  }
+  });
 
-  function TheirSide() {
+  const TheirSide = memo(() => {
     return (
       <div className="flex flex-col m-5">
         <div>
@@ -201,7 +168,7 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
         </div>
 
         {!oppSessionCard ? (
-          <CardBack />
+          <CardStack fromDirection="left" />
         ) : oppSessionCard && !oppCardInMiddle ? (
           <h2>Opponent's card is sending...</h2>
         ) : null}
@@ -213,7 +180,7 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
         ) : null}
       </div>
     );
-  }
+  });
 
   function ScoreBoard() {
     return (
@@ -242,7 +209,7 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
         <ScoreBoard />
       </div>
       <div className="flex flex-col align-middle justify-between h-full">
-        <div className="self-start">
+        <div className="self-start ml-6">
           <TheirSide />
         </div>
         {/* battle field */}
@@ -254,7 +221,7 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
             </div>
           ) : null}
         </div>
-        <div className="self-end">
+        <div className="self-end fixed bottom-0">
           <MySide />
         </div>
       </div>
