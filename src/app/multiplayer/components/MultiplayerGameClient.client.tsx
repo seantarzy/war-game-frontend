@@ -8,7 +8,8 @@ import { Card } from "../types";
 import { dealCard } from "@/app/api/multiplayer/methods";
 import { useSpring, animated } from "@react-spring/web";
 import { BaseballButton } from "./ui_components/Button";
-import { CardBack, PlayerCard, CardStack } from "./ui_components/Deck";
+import { CardBack, CardStack } from "./ui_components/Deck";
+import { PlayerCard } from "./ui_components/PlayerCard";
 
 const urlBase = env.NODE_ENV === "production" ? "heroku" : "localhost3001";
 
@@ -24,7 +25,6 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
   const [cardSlideReady, setcardSlideReady] = useState(false);
   const [oppCardInMiddle, setOppCardInMiddle] = useState(false);
   const [currentCardInMiddle, setCurrentCardInMiddle] = useState(false);
-  const currentCardRef = useRef<HTMLDivElement>(null);
   const [currentPosition, setCurrentPosition] = useState<XYPos>({ x: 0, y: 0 });
 
   const [props, set] = useSpring(() => ({
@@ -64,6 +64,7 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
   };
 
   const [oppFlipped, setOppFlipped] = useState(true);
+  const [currentFlipped, setCurrentFlipped] = useState(true);
 
   let opponentReady = !!oppSessionCard;
   let currentReady = !!currentSessionCard;
@@ -86,9 +87,6 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
 
     dealCard(gameId, currentPlayerSessionId, playerId).then((res) => {
       setcardSlideReady(true);
-      // setTimeout(() => {
-      //   handleCurrentSlideDone();
-      // }, CARD_BATTLE_TIME_DURATION);
     });
   };
 
@@ -125,9 +123,7 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
       let tomeoutId;
       let secondTimeoutId;
       tomeoutId = setTimeout(() => {
-        console.log("card slide");
         secondTimeoutId = setTimeout(() => {
-          console.log("done");
           setOppCardInMiddle(false);
           setcardSlideReady(false);
           invalidateCardRound();
@@ -161,6 +157,12 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
     reset: !oppCardInMiddle,
   });
 
+  useEffect(() => {
+    if (cardDrawn) {
+      setCurrentFlipped(false);
+    }
+  }, [cardDrawn]);
+
   const MySide = memo(() => {
     function MyButtonSet() {
       return (
@@ -188,13 +190,14 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
         {!currentSessionCard && <MyButtonSet />}
         {cardDrawn ? (
           <animated.div style={currentSlideIn}>
-            <PlayerCard player={cardDrawn} side="current" flipped={false} />
+            <PlayerCard
+              player={cardDrawn}
+              side="current"
+              flipped={currentFlipped}
+            />
           </animated.div>
         ) : (
           <div className="relative">
-            <div className="absolute z-1000">
-              <CardBack />
-            </div>
             <CardStack fromDirection="right" />
           </div>
         )}
