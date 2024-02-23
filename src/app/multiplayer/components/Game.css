@@ -1,0 +1,14 @@
+@keyframes slideToMiddle {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(
+      calc(50vw - 50%)
+    ); /* Adjust this value based on your layout */
+  }
+}
+
+.card-sliding {
+  animation: slideToMiddle 1s forwards; /* Adjust duration as needed */
+}

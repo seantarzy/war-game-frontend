@@ -3,8 +3,9 @@ import React, { useState } from "react";
 import MultiplayerGame from "./components/MultiplayerGameClient.client";
 import MultiplayerLobby from "./components/MultiplayerLobby.client";
 import "./styles.css";
+import { useLocalStorage } from "./hooks/useLocalStorage";
 function MultiplayerPage(props: any) {
-  const [gameId, setGameId] = useState<number | null>(null);
+  const [gameId, setGameId] = useLocalStorage<number | null>("gameId", null);
   const startGame = (gameId: number) => {
     setGameId(gameId);
   };
@@ -16,8 +17,8 @@ function MultiplayerPage(props: any) {
       </div>
       <br />
       <br />
-      <div className="flex flex-col justify-center">
-        <div className="flex flex-col align-middle justify-center">
+      <div className="flex flex-col justify-center flex-1">
+        <div className="flex flex-col align-middle justify-center flex-1">
           {gameId ? (
             <MultiplayerGame gameId={gameId} />
           ) : (

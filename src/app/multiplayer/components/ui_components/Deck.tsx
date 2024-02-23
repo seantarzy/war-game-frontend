@@ -1,12 +1,13 @@
 import React, { memo } from "react";
 import {
-  useSprings,
+  useSpring,
   animated,
   SpringValues,
   to as interpolateTo,
 } from "@react-spring/web";
 import CardBackImage from "../../../assets/war-games-back.jpeg";
 import Image, { StaticImageData } from "next/image";
+
 import { Card } from "../../types";
 import "./Deck.css";
 export function CardBack() {
@@ -49,13 +50,49 @@ function BaseCardLayout({ children }: { children: React.ReactNode }) {
   return <div className="h-56 w-40">{children}</div>;
 }
 
-export function PlayerCard({ player }: { player: Card }) {
+export function PlayerCard({
+  player,
+  side,
+  flipped,
+}: {
+  player: Card;
+  side: "current" | "opponent";
+  flipped: boolean; // This prop determines if the card is flipped to show the back
+}) {
+  // Spring animation for flipping
+  const { transform, opacity } = useSpring({
+    opacity: flipped ? 1 : 0,
+    transform: `perspective(1000px) rotateY(${flipped ? 180 : 0}deg)`,
+    config: { mass: 5, tension: 500, friction: 80 },
+  });
+
   return (
     <BaseCardLayout>
-      <div className="bg-blue-600 border-gray-100 border-2 h-full w-full flex flex-col justify-center items-center">
-        <h2>{player.name}</h2>
-        <img src={player.image} alt={player.name} className="w-[90%] h-[80%]" />
-        <div>WAR: {player.war}</div>
+      <div className="relative w-full h-full">
+        {/* Front side of the card */}
+        <animated.div
+          className="absolute w-full h-full bg-blue-600 border-gray-100 border-2 flex flex-col justify-center items-center"
+          style={{
+            opacity: opacity.to((o: any) => 1 - o),
+            transform,
+          }}
+        >
+          <h2>{player.name}</h2>
+          <img
+            src={player.image}
+            alt={player.name}
+            className="w-[90%] h-[80%]"
+          />
+          <div>WAR: {player.war}</div>
+        </animated.div>
+        <CardBack />
+        <animated.div
+          className="absolute w-full h-full"
+          style={{
+            opacity,
+            transform: transform.to((t: any) => `${t} rotateY(180deg)`),
+          }}
+        />
       </div>
     </BaseCardLayout>
   );

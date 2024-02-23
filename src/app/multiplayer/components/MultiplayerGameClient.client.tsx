@@ -6,8 +6,6 @@ import useGameChannelWebsocket from "../hooks/useGameChannelWebsocket";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { Card } from "../types";
 import { dealCard } from "@/app/api/multiplayer/methods";
-import CardBackImage from "../../assets/war-games-back.jpeg";
-import Image from "next/image";
 import { useSpring, animated } from "@react-spring/web";
 import { BaseballButton } from "./ui_components/Button";
 import { CardBack, PlayerCard, CardStack } from "./ui_components/Deck";
@@ -25,7 +23,7 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
 
   const [cardSlideReady, setcardSlideReady] = useState(false);
   const [oppCardInMiddle, setOppCardInMiddle] = useState(false);
-
+  const [currentCardInMiddle, setCurrentCardInMiddle] = useState(false);
   const currentCardRef = useRef<HTMLDivElement>(null);
   const [currentPosition, setCurrentPosition] = useState<XYPos>({ x: 0, y: 0 });
 
@@ -51,15 +49,29 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
     currentPlayerSessionId: currentPlayerSessionId,
     sessionType: sessionType,
   });
+
+  // state variables for holding scores when we're ready to show them
+  const [readyCurrentScore, setReadyCurrentScore] = useState<number | null>(
+    currentSessionScore
+  );
+  const [readyOppScore, setReadyOppScore] = useState<number | null>(
+    oppSessionScore
+  );
   const drawRando = () => {
     getRandomPlayer().then((card: Card) => {
       setCardDrawn(card);
     });
   };
 
-  let opponentReady = !!oppSessionCard;
+  const [oppFlipped, setOppFlipped] = useState(true);
 
-  let battleReady = !!currentSessionCard && !!oppSessionCard;
+  let opponentReady = !!oppSessionCard;
+  let currentReady = !!currentSessionCard;
+  let battleReady =
+    !!currentSessionCard &&
+    !!oppSessionCard &&
+    !!oppCardInMiddle &&
+    !!currentCardInMiddle;
 
   if (currentPlayerSessionId === 0) {
     console.error("No session id found");
@@ -81,12 +93,32 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
   };
 
   useEffect(() => {
+    if (currentSessionScore && battleReady) {
+      setReadyCurrentScore(currentSessionScore);
+    }
+  }, [currentSessionScore, battleReady]);
+
+  useEffect(() => {
+    if (oppSessionScore && battleReady) {
+      setReadyOppScore(oppSessionScore);
+    }
+  }, [oppSessionScore, battleReady]);
+
+  useEffect(() => {
     if (opponentReady) {
       setTimeout(() => {
         setOppCardInMiddle(true);
       }, CARD_SLIDE_TIME_DURATION);
     }
   }, [opponentReady]);
+
+  useEffect(() => {
+    if (currentReady) {
+      setTimeout(() => {
+        setCurrentCardInMiddle(true);
+      }, CARD_SLIDE_TIME_DURATION);
+    }
+  }, [currentReady]);
 
   useEffect(() => {
     if (battleReady) {
@@ -100,28 +132,33 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
           setcardSlideReady(false);
           invalidateCardRound();
           setCardDrawn(null);
+          setCurrentCardInMiddle(false);
+          setOppFlipped(true);
         }, 1000);
       }, CARD_SLIDE_TIME_DURATION);
     }
   }, [battleReady]);
 
-  // const handleCurrentSlideDone = () => {
-  //   setTimeout(() => {
-  //     setOppCardInMiddle(false);
-  //     setcardSlideReady(false);
-  //     invalidateCardRound();
-  //     setCardDrawn(null);
-  //   }, 1000);
-  // };
-
-  const slideIn = useSpring({
+  const currentSlideIn = useSpring({
     to: {
       transform: cardSlideReady
-        ? "translate(-40vw, -20vh)" // Moves the card to the center of the screen
+        ? "translate(-30vw, -21vh)" // Moves the card to the center of the screen
         : "translate(0vw, 0vh)", // Returns the card to its original position
     },
     from: { transform: "translate(0vw, 0vh)" },
     config: { duration: CARD_SLIDE_TIME_DURATION },
+  });
+
+  const opponentSlideIn = useSpring({
+    to: {
+      transform: oppSessionCard
+        ? "translate(30vw, 12vh)" // Moves the card to the center for the animation
+        : "translate(0vw, 0vh)", // Returns the card to its original position once the animation is done
+    },
+    from: { transform: "translate(0vw, 0vh)" },
+    config: { duration: CARD_SLIDE_TIME_DURATION },
+    // Only start the animation if the opponent's card is being sent (oppCardInMiddle is true) and the battle isn't ready
+    reset: !oppCardInMiddle,
   });
 
   const MySide = memo(() => {
@@ -148,17 +185,28 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
 
     return (
       <div className="flex m-5 gap-8 self-end">
-        <MyButtonSet />
+        {!currentSessionCard && <MyButtonSet />}
         {cardDrawn ? (
-          <animated.div style={slideIn}>
-            <PlayerCard player={cardDrawn} />
+          <animated.div style={currentSlideIn}>
+            <PlayerCard player={cardDrawn} side="current" flipped={false} />
           </animated.div>
         ) : (
-          <CardStack fromDirection="right" />
+          <div className="relative">
+            <div className="absolute z-1000">
+              <CardBack />
+            </div>
+            <CardStack fromDirection="right" />
+          </div>
         )}
       </div>
     );
   });
+
+  useEffect(() => {
+    if (oppSessionCard && oppCardInMiddle && battleReady) {
+      setOppFlipped(false);
+    }
+  }, [oppSessionCard, oppCardInMiddle, battleReady]);
 
   const TheirSide = memo(() => {
     return (
@@ -168,16 +216,17 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
         </div>
 
         {!oppSessionCard ? (
+          // not even ready yet, maybe has drawn a card at most
           <CardStack fromDirection="left" />
-        ) : oppSessionCard && !oppCardInMiddle ? (
-          <h2>Opponent's card is sending...</h2>
-        ) : null}
-        {oppSessionCard && oppCardInMiddle ? (
-          <div>
-            <h2>Opponent's card in the middle:</h2>
-            <PlayerCard player={oppSessionCard} />
-          </div>
-        ) : null}
+        ) : (
+          <animated.div style={opponentSlideIn}>
+            <PlayerCard
+              player={oppSessionCard}
+              side="opponent"
+              flipped={oppFlipped}
+            />
+          </animated.div>
+        )}
       </div>
     );
   });
@@ -185,8 +234,8 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
   function ScoreBoard() {
     return (
       <div className="bg-black rounded text-lg justify-center w-1/2">
-        <div>Your score: {currentSessionScore}</div>
-        <div>Opponent score: {oppSessionScore}</div>
+        <div>Your score: {readyCurrentScore}</div>
+        <div>Opponent score: {readyOppScore}</div>
       </div>
     );
   }
@@ -204,8 +253,8 @@ export default function MultiplayerGame({ gameId }: { gameId: number }) {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex align-middle justify-center">
+    <div className="flex flex-col h-full flex-1">
+      <div className="flex align-top items-start justify-center">
         <ScoreBoard />
       </div>
       <div className="flex flex-col align-middle justify-between h-full">

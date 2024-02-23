@@ -37,6 +37,7 @@ export default function MultiplayerLobby({
     // create a new game
     // subscribe to the game channel
     createGame().then((res) => {
+      window.localStorage.clear();
       setGameId(res.game.id);
       setGameCode(res.game.invite_code);
       setSessionId(res.session.id);
@@ -47,6 +48,7 @@ export default function MultiplayerLobby({
   const handleJoinGame = (event: FormEvent) => {
     event.preventDefault();
     joinGame(gameCode).then((res) => {
+      window.localStorage.clear();
       setGameId(res.game.id);
       setSessionId(res.session.id);
       setSessionType("guest");
@@ -109,14 +111,35 @@ export default function MultiplayerLobby({
   };
 
   function WaitingLobby() {
+    const [copied, setCopied] = useState(false);
+    const copyToClipboard = () => {
+      navigator.clipboard.writeText(gameCode).then(() => {
+        setCopied(true);
+        let timeout = setTimeout(() => {
+          setCopied(false);
+          clearTimeout(timeout);
+        }, 2000);
+      });
+    };
     return (
-      <div className="flex flex-col gap-4 items-center justify-center">
+      <div className="flex flex-col gap-4 items-center justify-center self-center align-middle">
         <BaseballButton onClick={endGame} disabled={false} className="w-48">
           Back
         </BaseballButton>
-        <div className="bg-slate-700 rounded-lg py-6 px-12">
-          <h1>Game Started! Send this invite code to your friend:</h1>
-          <h2>{gameCode}</h2>
+        <div className="bg-slate-700 rounded-lg py-6 px-12 text-center">
+          <h1 className="text-lg mb-4">
+            Game Started! Send this invite code to your friend:
+          </h1>
+          <div className="flex justify-center items-center gap-4">
+            <h2 className="text-xl font-bold">{gameCode}</h2>
+            <button
+              onClick={copyToClipboard}
+              className="px-4 py-2 bg-blue-800 text-white rounded hover:bg-blue-950 transition duration-150 ease-in-out min-w-14 text-lg"
+            >
+              {/* unicode for check mark? */}
+              {copied ? "✔" : "📋︎"}
+            </button>
+          </div>
         </div>
       </div>
     );
